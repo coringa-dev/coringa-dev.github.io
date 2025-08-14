@@ -1,1 +1,0 @@
-# coringa-dev.github.io
