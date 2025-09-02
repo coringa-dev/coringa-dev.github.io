@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Bomba de Ar — YouTube + Volume + Escurecimento (mobile no-scroll)</title>
+<style>
+  :root{
+    --bg:#0b1220;
+    --accent:#27c9a7;
+    --accent-2:#52e0bd;
+    --text:#e6eefc;
+    --text-dim:#9fb2d0;
+    --radius:16px;
+    --shadow:0 12px 30px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+
+  html, body{
+    height:100%;
+    margin:0;
+    overflow:hidden;                /* sem scroll */
+    overscroll-behavior:none;       /* bloqueia pull-to-refresh */
+    background:var(--bg);
+    color:var(--text);
+    -webkit-text-size-adjust:100%;
+  }
+  body{
+    display:grid; place-items:center;
+    background:
+      radial-gradient(1200px 600px at 80% -10%, #16213a 0%, transparent 60%),
+      radial-gradient(1000px 800px at -10% 110%, #0e1730 0%, transparent 60%),
+      var(--bg);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+  }
+
+  .app{
+    width:min(980px, 96vw);
+    height:100dvh;
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:20px;
+    align-items:center;
+    padding:10px 12px calc(env(safe-area-inset-bottom, 0) + 8px);
+  }
+  @media (max-width:900px){
+    .app{ grid-template-columns:1fr; gap:12px; align-content:center; }
+  }
+
+  .card{
+    background:linear-gradient(180deg, #0f1730 0%, #0e162b 100%);
+    border:1px solid #1f2b45; border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:12px;
+  }
+  .card h2{ margin:0 0 10px 0; font-size:16px; color:#dbe6ff; letter-spacing:.2px; }
+  .hint{ color:var(--text-dim); font-size:12px; line-height:1.45; margin:8px 0 0 0; }
+
+  /* Vídeo responsivo */
+  .video-wrap{ display:flex; flex-direction:column; gap:10px; align-items:flex-start; }
+  .yt-shell{
+    position:relative; width:min(420px, 88vw); aspect-ratio:16/9;
+    border-radius:12px; overflow:hidden; outline:1px solid #23304f; background:#000;
+  }
+  .yt-shell iframe{
+    position:absolute; inset:0; width:100%; height:100%; border:0;
+    pointer-events:none; z-index:1;
+  }
+  .dark-overlay{
+    position:absolute; inset:0; background:#000;
+    opacity:1; pointer-events:none; transition:opacity .12s linear; z-index:2;
+  }
+  .click-shield{ position:absolute; inset:0; background:transparent; pointer-events:auto; z-index:3; }
+
+  .vol-row{ width:100%; display:flex; align-items:center; gap:10px; }
+  .bar{ position:relative; flex:1; height:10px; background:#0f1a30; border-radius:999px; outline:1px solid #223154; overflow:hidden; }
+  .bar > span{ position:absolute; inset:0 100% 0 0; background:linear-gradient(90deg, var(--accent), var(--accent-2)); transition:width .12s linear; width:0%; }
+  .vol-num{ min-width:54px; text-align:right; font-variant-numeric:tabular-nums; color:#cfe2ff; }
+
+  /* Bomba responsiva */
+  .pump-wrap{
+    position:relative;
+    height:clamp(300px, 42vh, 420px);
+    display:grid; place-items:center;
+    padding-bottom:10px;
+  }
+  .stage{
+    position:relative; width:min(420px, 90%); height:100%;
+    display:flex; align-items:flex-end; justify-content:center;
+    transform: translateY(-8px);
+  }
+
+  .hose{
+    position:absolute; left:55%; bottom:118px; width:160px; height:120px;
+    border:10px solid #1a2439; border-color:#1a2439 transparent transparent transparent;
+    border-radius:120px 120px 0 0; transform:translateX(40px);
+    filter:drop-shadow(0 6px 8px rgba(0,0,0,.35));
+  }
+  @media (max-width:480px){
+    .hose{ left:58%; width:130px; height:96px; border-width:8px; bottom:100px; }
+  }
+  .hose::after{
+    content:""; position:absolute; right:-16px; top:-16px; width:22px; height:22px;
+    border-radius:6px; background:#2a3a60; outline:2px solid #1a2746;
+  }
+
+  .cylinder{
+    position:relative; width:86px; height:180px;
+    background:linear-gradient(180deg,#18233b,#0f1a2f);
+    border-radius:12px; outline:1px solid #1f2c4b;
+    display:flex; align-items:flex-end; justify-content:center;
+    box-shadow: inset 0 -12px 30px rgba(0,0,0,.6);
+  }
+  @media (max-width:480px){
+    .cylinder{ transform:scale(.92); }
+  }
+  .cylinder::before{
+    content:""; position:absolute; top:-16px; left:50%; transform:translateX(-50%);
+    width:60px; height:16px; background:#0d1528; border-radius:10px 10px 0 0; outline:1px solid #1e2a47;
+  }
+  .base{
+    position:absolute; bottom:-8px;
+    width:200px; height:26px; background:linear-gradient(180deg,#0d1528,#0a1120);
+    border-radius:14px; outline:1px solid #1c2948; box-shadow:0 14px 28px rgba(0,0,0,.45);
+  }
+
+  .rod{
+    position:absolute; top:-140px; left:50%; transform:translateX(-50%);
+    width:14px; height:240px; background:linear-gradient(180deg,#9eb4d9,#6c87b8);
+    border-radius:8px; outline:1px solid #2a3d65; box-shadow: inset 0 0 10px rgba(0,0,0,.25);
+    pointer-events:none;
+  }
+
+  .handle{
+    position:absolute; top:-164px; left:50%; transform:translateX(-50%);
+    width:180px; height:34px; border-radius:999px;
+    background:linear-gradient(180deg,#22355a,#1a2a49);
+    outline:1px solid #2d416b; box-shadow:0 10px 22px rgba(0,0,0,.45);
+    cursor:grab; user-select:none; touch-action:none;
+    display:flex; align-items:center; justify-content:center; color:#cfe2ff; font-size:13px;
+  }
+  .handle:active{ cursor:grabbing; }
+  .handle::after{ content:"Arraste para ↑ bombear"; opacity:.85; letter-spacing:.2px; font-size:12px; }
+
+  .tank{
+    position:absolute; left:-20px; bottom:118px; width:10px; height:180px;
+    border-radius:999px; outline:1px solid #26406c; background:#0f1a2f; overflow:hidden;
+  }
+  .tank > i{
+    position:absolute; left:0; bottom:0; width:100%; height:0%;
+    background:linear-gradient(180deg, #3fe0bb 0%, #1ed09e 100%);
+    box-shadow:0 4px 12px rgba(39,201,167,.45) inset; transition:height .1s linear;
+  }
+  .tip{
+    position:absolute; top:-42px; left:50%; transform:translateX(-50%);
+    padding:6px 10px; font-size:12px; background:#0d1426; border:1px solid #233355;
+    border-radius:10px; color:#d7e6ff; white-space:nowrap;
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- Vídeo -->
+    <section class="card">
+      <h2>Vídeo</h2>
+      <div class="video-wrap">
+        <div class="yt-shell" id="ytShell">
+          <div id="player" tabindex="-1" aria-hidden="true"></div>
+          <div class="dark-overlay" id="darkOverlay"></div>
+          <div class="click-shield" id="clickShield" title=""></div>
+        </div>
+        <div class="vol-row">
+          <div class="bar" aria-label="Volume"><span id="barFill" style="width:0%"></span></div>
+          <div class="vol-num"><span id="volNum">0</span>%</div>
+        </div>
+        <p class="hint">
+          A primeira <b>bombada</b> habilita o som (regras de autoplay dos navegadores). 😉
+        </p>
+      </div>
+    </section>
+
+    <!-- Bomba -->
+    <section class="card">
+      <h2>Bomba de Ar (arraste o manete)</h2>
+      <div class="pump-wrap">
+        <div class="stage" id="stage">
+          <div class="hose" aria-hidden="true"></div>
+          <div class="cylinder" aria-hidden="true">
+            <div class="base" aria-hidden="true"></div>
+            <div class="tank" aria-hidden="true"><i id="tankFill"></i></div>
+            <div class="rod" id="rod" aria-hidden="true"></div>
+            <div class="handle" id="handle" role="button" aria-label="Arraste para cima para bombear">
+              <div class="tip" id="tip">Segure e puxe para ↑</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:6px">
+        Cada puxada ~32px ↑ adiciona <b>+1%</b> ao volume.</p>
+    </section>
+  </div>
+
+<!-- YouTube IFrame API -->
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+(() => {
+  // refs
+  const barFill = document.getElementById('barFill');
+  const volNum = document.getElementById('volNum');
+  const tankFill = document.getElementById('tankFill');
+  const handle = document.getElementById('handle');
+  const rod = document.getElementById('rod');
+  const tip = document.getElementById('tip');
+  const overlay = document.getElementById('darkOverlay');
+  const clickShield = document.getElementById('clickShield');
+  const ytShell = document.getElementById('ytShell');
+
+  // Bloqueia cliques no player
+  ['click','dblclick','auxclick','mousedown','mouseup','touchstart','touchend','contextmenu','pointerdown','pointerup'].forEach(ev=>{
+    clickShield.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, {passive:false});
+  });
+
+  // BLOQUEIA SCROLL NO MOBILE
+  function blockTouchScroll(e){ e.preventDefault(); }
+  window.addEventListener('touchmove', blockTouchScroll, {passive:false});
+  // Evita zoom por duplo toque
+  let lastTouch=0;
+  window.addEventListener('touchend', e=>{
+    const now=Date.now();
+    if(now-lastTouch<350){ e.preventDefault(); }
+    lastTouch=now;
+  }, {passive:false});
+
+  // Limites do manete
+  const HANDLE_MIN_Y = -164;  // topo
+  const HANDLE_MAX_Y = -40;   // baixo
+
+  // Estado volume (0–100)
+  let volPct = 0;
+  let isDragging = false;
+  let lastClientY = 0;
+  let lastMoveTs = 0;
+  let userInteracted = false;       // NOVO: marca gesto humano
+
+  // Decaimento (você ajustou para cair rápido)
+  const passiveDecayPerSec = 25.0;
+  const idleDecayPerSec = 40.0;
+
+  // Passo: 1% a cada ~32px puxados para cima
+  const pumpStepPercent = 1;
+  const pumpStepPx = 32;
+  let pumpAccumPx = 0;
+
+  // Posição inicial do manete
+  let handleY = HANDLE_MAX_Y;
+  positionHandle(handleY);
+
+  // YouTube player
+  let player = null;
+
+  // 1) Garante que o iframe tenha allow="autoplay ..."
+  const mo = new MutationObserver(() => {
+    const iframe = ytShell.querySelector('iframe');
+    if (iframe) {
+      iframe.setAttribute('allow', 'autoplay; encrypted-media; picture-in-picture');
+      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      mo.disconnect();
+    }
+  });
+  mo.observe(ytShell, { childList:true, subtree:true });
+
+  // 2) API pronta -> cria player
+  window.onYouTubeIframeAPIReady = function(){
+    player = new YT.Player('player', {
+      videoId: 'Kz2WjqV9Dc8',
+      width: '100%',
+      height: '100%',
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        modestbranding: 1,
+        rel: 0,
+        iv_load_policy: 3,
+        disablekb: 1,
+        playsinline: 1,
+        loop: 1,
+        playlist: 'Kz2WjqV9Dc8',
+        fs: 0,
+        mute: 1,
+        origin: window.location.origin
+      },
+      events: {
+        onReady: (e) => {
+          try { e.target.setVolume(0); } catch {}
+          // Não dependa do autoplay aqui — alguns SOs bloqueiam.
+          // Deixa o watchdog/gesto iniciar de forma confiável.
+          updatePlaybackByVolume(); // overlay preto + (pretende pausar) em 0%
+        },
+        onStateChange: (evt) => {
+          // Se o usuário já interagiu e o volume > 0, persiste tentando tocar
+          if (userInteracted && volPct > 0 && player && evt.data !== YT.PlayerState.PLAYING) {
+            safePlay();
+          }
+        }
+      }
+    });
+  };
+
+  // Watchdog: se vol > 0 e não está tocando, tenta tocar a cada 500ms
+  setInterval(() => {
+    if (!player || typeof player.getPlayerState !== 'function') return;
+    if (volPct > 0) {
+      const st = player.getPlayerState();
+      if (st !== 1) safePlay();
+    }
+  }, 500);
+
+  function safePlay(){
+    try { player.unMute(); } catch {}
+    try { player.playVideo(); } catch {}
+    try { player.setVolume(clamp(Math.round(volPct), 0, 100)); } catch {}
+  }
+
+  // Loop principal
+  let lastFrame = performance.now();
+  function tick(ts) {
+    const dt = Math.min(0.05, (ts - lastFrame) / 1000);
+    lastFrame = ts;
+
+    if (!isDragging) {
+      const now = ts;
+      const idle = (now - lastMoveTs) > 1500;
+      const decay = (idle ? idleDecayPerSec : passiveDecayPerSec) * dt;
+      volPct = Math.max(0, volPct - decay);
+      applyVolumeUI();
+    }
+    // gravidade do manete
+    if (!isDragging){
+      handleY = Math.min(HANDLE_MAX_Y, handleY + 60 * dt);
+      positionHandle(handleY);
+    }
+
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+
+  // Utils
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function positionHandle(y){
+    handle.style.top = y + "px";
+    rod.style.top = (y + 24) + "px";
+  }
+
+  function updatePlaybackByVolume() {
+    const pct = Math.round(volPct);
+    if (overlay) overlay.style.opacity = 1 - (pct / 100);
+
+    if (player && typeof player.getPlayerState === 'function') {
+      try {
+        if (pct <= 0) {
+          player.setVolume(0); player.mute(); player.pauseVideo();
+        } else {
+          safePlay();
+        }
+      } catch (e) { /* noop */ }
+    }
+  }
+
+  function applyVolumeUI(){
+    const pct = Math.round(volPct);
+    barFill.style.width = pct + "%";
+    volNum.textContent = pct;
+    tankFill.style.height = pct + "%";
+    updatePlaybackByVolume();
+  }
+
+  // Drag
+  function onDragStart(clientY){
+    isDragging = true;
+    userInteracted = true;           // NOVO: marca gesto
+    lastClientY = clientY;
+    lastMoveTs = performance.now();
+    pumpAccumPx = 0;
+    tip.style.opacity = 0;
+
+    // Gesto humano presente → se já tem volume > 0, garante play
+    if (volPct > 0) safePlay();
+  }
+  function onDragMove(clientY){
+    if (!isDragging) return;
+    const dy = clientY - lastClientY;   // + baixo, - cima
+    lastClientY = clientY;
+    lastMoveTs = performance.now();
+
+    handleY = clamp(handleY + dy, HANDLE_MIN_Y, HANDLE_MAX_Y);
+    positionHandle(handleY);
+
+    if (dy < 0){
+      pumpAccumPx += (-dy);
+      if (pumpAccumPx >= pumpStepPx){
+        pumpAccumPx = 0;
+        const wasZero = (volPct <= 0);
+        volPct = clamp(volPct + pumpStepPercent, 0, 100);
+        if (wasZero && volPct > 0){
+          safePlay();
+        }
+        applyVolumeUI();
+      }
+    }
+  }
+  function onDragEnd(){ isDragging = false; }
+
+  // Eventos mouse/touch
+  handle.addEventListener('mousedown', e => { e.preventDefault(); onDragStart(e.clientY); });
+  window.addEventListener('mousemove', e => onDragMove(e.clientY));
+  window.addEventListener('mouseup', onDragEnd);
+
+  handle.addEventListener('touchstart', e => { const t=e.changedTouches[0]; onDragStart(t.clientY); }, {passive:false});
+  window.addEventListener('touchmove', e => { const t=e.changedTouches[0]; onDragMove(t.clientY); }, {passive:false});
+  window.addEventListener('touchend', onDragEnd);
+
+  // Ignora interações no shell do vídeo
+  ['click','dblclick','auxclick','contextmenu','pointerdown','pointerup','touchstart','touchend'].forEach(ev=>{
+    ytShell.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); }, {passive:false});
+  });
+
+})();
+</script>
+</body>
+</html>
